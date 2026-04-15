@@ -1,0 +1,12 @@
+# Ignorar datos crudos pesados
+
+data/Raw/
+data/raw/
+__pycache__/
+.DS_Store
+
+# Ignorar entornos virtuales y caché de Python
+__pycache__/
+*.pyc
+venv/
+.DS_Store

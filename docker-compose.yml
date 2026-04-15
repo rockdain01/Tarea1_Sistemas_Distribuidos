@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  # Servicio de Caché obligatorio (Redis)
+  redis_cache:
+    image: redis:7.0-alpine
+    container_name: redis_cache
+    ports:
+      - "6379:6379"
+    # Configuración de memoria según requerimientos (ej: 50MB y política LRU)
+    [cite_start]command: redis-server --maxmemory 50mb --maxmemory-policy allkeys-lru [cite: 38, 178]
+
+  # Tu módulo Generador de Respuestas
+  generador_respuestas:
+    build: .
+    container_name: generador_respuestas
+    depends_on:
+      - redis_cache
+    environment:
+      - REDIS_HOST=redis_cache
