@@ -17,7 +17,7 @@ Este proyecto implementa una arquitectura distribuida para consultar datos de ed
 1.  **Levantar los servicios:**
     Desde la raíz de la carpeta `Tarea1`, ejecuta:
     ```bash
-    docker compose up --build
+    docker compose up --build responder cache metrics
     ```
 
 2.  **Verificar que los datos cargaron:**
@@ -27,6 +27,12 @@ Este proyecto implementa una arquitectura distribuida para consultar datos de ed
 ## 🔍 Pruebas de Consultas (Ejemplos)
 
 Puedes realizar pruebas utilizando `curl` desde otra terminal:
+
+# Primera consulta → debe ser MISS segunda consulta dentro de los 60 segundos de TTL debe ser HIT
+```bash
+curl -X POST http://localhost:8002/query \
+  -H "Content-Type: application/json" \
+  -d '{"query_type": "Q1", "zone_id": "Z1", "confidence_min": 0.0}'
 
 ### Q1: Conteo de edificios (Providencia)
 ```bash
