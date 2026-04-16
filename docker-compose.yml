@@ -22,7 +22,7 @@ services:
       - tarea1_net
     command: >
       redis-server
-      --maxmemory 200mb
+      --maxmemory 50mb
       --maxmemory-policy allkeys-lru
       --save ""
     healthcheck:
@@ -105,7 +105,7 @@ services:
     environment:
       - CACHE_URL=http://cache:8002
       - METRICS_URL=http://metrics:8003
-      - DISTRIBUTION=zipf          # opciones: zipf | uniform
+      - DISTRIBUTION=uniform        # opciones: zipf | uniform
       - TOTAL_REQUESTS=1000
       - REQUEST_RATE=10            # requests por segundo
     networks:

@@ -12,6 +12,18 @@ Este proyecto implementa una arquitectura distribuida para consultar datos de ed
 * **Metrics (Puerto 8003):** Almacena y calcula el rendimiento (Hit Rate, Latencia P95).
 * **Redis:** Base de datos NoSQL para el almacenamiento temporal (TTL: 60s).
 
+## 🛠️ Configuracion en docker-compose.yml para LRU,LFU,FIFO:
+Para LRU (la que esta puesta ahora):
+--maxmemory-policy allkeys-lru
+(Borra lo que no se ha usado hace tiempo).
+
+Para LFU:
+--maxmemory-policy allkeys-lfu
+(Borra lo que se usa con menos frecuencia).
+
+Para FIFO (en Redis se llama volatile-ttl):
+--maxmemory-policy volatile-ttl
+
 ## ⚡ Instalación y Ejecución
 
 1.  **Levantar los servicios:**
