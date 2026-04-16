@@ -2,6 +2,7 @@
 Almacenamiento de Métricas
 Registra todos los eventos del sistema: hits, misses,
 latencias, throughput y evictions para análisis posterior.
+Incluye cálculo de Cache Efficiency según rúbrica.
 """
 
 import os
@@ -20,7 +21,7 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-app = FastAPI(title="Metrics Service", version="1.0.0")
+app = FastAPI(title="Metrics Service", version="1.1.0")
 
 # ─────────────────────────────────────────
 # Almacén en memoria de eventos
@@ -33,6 +34,8 @@ stats = {
     "misses": 0,
     "total_requests": 0,
     "total_latency_ms": 0.0,
+    "hit_times_sum": 0.0,    # Nuevo: para t_cache
+    "miss_times_sum": 0.0,   # Nuevo: para t_db
     "latencies": [],       # para calcular p50/p95
     "evictions": 0,
     "start_time": time.time()
@@ -66,8 +69,10 @@ def record_event(evt: MetricEvent):
 
     if evt.event == "hit":
         stats["hits"] += 1
+        stats["hit_times_sum"] += evt.latency_ms
     elif evt.event == "miss":
         stats["misses"] += 1
+        stats["miss_times_sum"] += evt.latency_ms
     elif evt.event == "eviction":
         stats["evictions"] += 1
 
@@ -91,6 +96,17 @@ def get_summary():
 
     eviction_rate = round(stats["evictions"] / (elapsed_s / 60), 4) if elapsed_s > 0 else 0.0
 
+    # ─────────────────────────────────────────
+    # Cálculo de Cache Efficiency (Rúbrica)
+    # Fórmula: (hits * t_cache - misses * t_db) / total
+    # ─────────────────────────────────────────
+    t_cache = stats["hit_times_sum"] / stats["hits"] if stats["hits"] > 0 else 0.0
+    t_db = stats["miss_times_sum"] / stats["misses"] if stats["misses"] > 0 else 0.0
+    
+    cache_efficiency = (
+        (stats["hits"] * t_cache) - (stats["misses"] * t_db)
+    ) / total if total > 0 else 0.0
+
     return {
         "hits": stats["hits"],
         "misses": stats["misses"],
@@ -101,6 +117,7 @@ def get_summary():
         "latency_p50_ms": round(p50, 3),
         "latency_p95_ms": round(p95, 3),
         "eviction_rate_per_min": eviction_rate,
+        "cache_efficiency": round(cache_efficiency, 4),
         "elapsed_seconds": round(elapsed_s, 1)
     }
 
@@ -122,6 +139,8 @@ def reset_metrics():
     stats["misses"] = 0
     stats["total_requests"] = 0
     stats["total_latency_ms"] = 0.0
+    stats["hit_times_sum"] = 0.0
+    stats["miss_times_sum"] = 0.0
     stats["latencies"] = []
     stats["evictions"] = 0
     stats["start_time"] = time.time()
