@@ -3,7 +3,7 @@
 Este proyecto implementa una arquitectura distribuida para consultar datos de edificaciones en 5 comunas de Santiago. Utiliza una estrategia de caché con **Redis** para optimizar los tiempos de respuesta y un sistema de **Métricas** para monitorear el rendimiento.
 
 ## 🚀 Requisitos Previos
-* Docker y Docker Compose instalados.
+* Docker y Docker Compose instalados (En caso de instalar docker desktop, compose ya viene incluido).
 * En Mac M2: Docker Desktop (asegurar que el motor esté corriendo).
 
 ## 🛠️ Arquitectura
