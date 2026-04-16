@@ -1,20 +1,115 @@
-version: '3.8'
+version: "3.9"
+
+networks:
+  tarea1_net:
+    driver: bridge
+
+volumes:
+  metrics_data:
 
 services:
-  # Servicio de Caché obligatorio (Redis)
-  redis_cache:
-    image: redis:7.0-alpine
-    container_name: redis_cache
+
+  # ─────────────────────────────────────────
+  # Redis — Motor de caché
+  # ─────────────────────────────────────────
+  redis:
+    image: redis:7.2-alpine
+    container_name: redis
+    platform: linux/arm64        # Mac M2 (Apple Silicon)
     ports:
       - "6379:6379"
-    # Configuración de memoria según requerimientos (ej: 50MB y política LRU)
-    [cite_start]command: redis-server --maxmemory 50mb --maxmemory-policy allkeys-lru [cite: 38, 178]
+    networks:
+      - tarea1_net
+    command: >
+      redis-server
+      --maxmemory 200mb
+      --maxmemory-policy allkeys-lru
+      --save ""
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
-  # Tu módulo Generador de Respuestas
-  generador_respuestas:
-    build: .
-    container_name: generador_respuestas
-    depends_on:
-      - redis_cache
+  # ─────────────────────────────────────────
+  # Generador de Respuestas (Q1-Q5)
+  # ─────────────────────────────────────────
+  responder:
+    build:
+      context: ./services/responder
+      dockerfile: Dockerfile
+    container_name: responder
+    platform: linux/arm64
+    volumes:
+      - ./data/processed:/app/data
     environment:
-      - REDIS_HOST=redis_cache
+      - PORT=8001
+    ports:
+      - "8001:8001"
+    networks:
+      - tarea1_net
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # ─────────────────────────────────────────
+  # Sistema Caché
+  # ─────────────────────────────────────────
+  cache:
+    build:
+      context: ./services/cache
+      dockerfile: Dockerfile
+    container_name: cache
+    platform: linux/arm64
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - RESPONDER_URL=http://responder:8001
+      - CACHE_TTL=60
+      - PORT=8002
+    ports:
+      - "8002:8002"
+    networks:
+      - tarea1_net
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # ─────────────────────────────────────────
+  # Almacenamiento de Métricas
+  # ─────────────────────────────────────────
+  metrics:
+    build:
+      context: ./services/metrics
+      dockerfile: Dockerfile
+    container_name: metrics
+    platform: linux/arm64
+    environment:
+      - PORT=8003
+    ports:
+      - "8003:8003"
+    volumes:
+      - metrics_data:/app/metrics_store
+    networks:
+      - tarea1_net
+
+  # ─────────────────────────────────────────
+  # Generador de Tráfico
+  # ─────────────────────────────────────────
+  traffic:
+    build:
+      context: ./services/traffic
+      dockerfile: Dockerfile
+    container_name: traffic
+    platform: linux/arm64
+    environment:
+      - CACHE_URL=http://cache:8002
+      - METRICS_URL=http://metrics:8003
+      - DISTRIBUTION=zipf          # opciones: zipf | uniform
+      - TOTAL_REQUESTS=1000
+      - REQUEST_RATE=10            # requests por segundo
+    networks:
+      - tarea1_net
+    depends_on:
+      - cache
+      - metrics
