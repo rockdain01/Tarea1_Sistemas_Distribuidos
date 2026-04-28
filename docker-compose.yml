@@ -22,8 +22,8 @@ services:
       - tarea1_net
     command: >
       redis-server
-      --maxmemory 500mb
-      --maxmemory-policy allkeys-lru
+      --maxmemory 1mb
+      --maxmemory-policy volatile-ttl
       --save ""
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -65,7 +65,7 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - RESPONDER_URL=http://responder:8001
-      - CACHE_TTL=60
+      - CACHE_TTL=3600
       - PORT=8002
     ports:
       - "8002:8002"
@@ -105,9 +105,9 @@ services:
     environment:
       - CACHE_URL=http://cache:8002
       - METRICS_URL=http://metrics:8003
-      - DISTRIBUTION=uniform        # opciones: zipf | uniform
-      - TOTAL_REQUESTS=1000
-      - REQUEST_RATE=10            # requests por segundo
+      - DISTRIBUTION=zipf      # opciones: zipf | uniform
+      - TOTAL_REQUESTS=10000
+      - REQUEST_RATE=100       # requests por segundo
     networks:
       - tarea1_net
     depends_on:

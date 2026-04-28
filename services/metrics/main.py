@@ -2,9 +2,9 @@
 Almacenamiento de Métricas
 Registra todos los eventos del sistema: hits, misses,
 latencias, throughput y evictions para análisis posterior.
-Incluye cálculo de Cache Efficiency según rúbrica.
+Incluye cálculo de Cache Efficiency según rúbrica y consulta directa a Redis.
 """
-
+import redis
 import os
 import time
 import json
@@ -21,7 +21,12 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-app = FastAPI(title="Metrics Service", version="1.1.0")
+app = FastAPI(title="Metrics Service", version="1.2.0")
+
+# ─────────────────────────────────────────
+# Conexión a Redis para obtener evicciones reales
+# ─────────────────────────────────────────
+r = redis.Redis(host='redis', port=6379, db=0, decode_responses=True)
 
 # ─────────────────────────────────────────
 # Almacén en memoria de eventos
@@ -34,8 +39,8 @@ stats = {
     "misses": 0,
     "total_requests": 0,
     "total_latency_ms": 0.0,
-    "hit_times_sum": 0.0,    # Nuevo: para t_cache
-    "miss_times_sum": 0.0,   # Nuevo: para t_db
+    "hit_times_sum": 0.0,    # para t_cache
+    "miss_times_sum": 0.0,   # para t_db
     "latencies": [],       # para calcular p50/p95
     "evictions": 0,
     "start_time": time.time()
@@ -94,7 +99,16 @@ def get_summary():
     p50 = lats[int(len(lats) * 0.50)] if lats else 0.0
     p95 = lats[int(len(lats) * 0.95)] if lats else 0.0
 
-    eviction_rate = round(stats["evictions"] / (elapsed_s / 60), 4) if elapsed_s > 0 else 0.0
+    # --- CONSULTA DIRECTA A REDIS PARA EVICTIONS ---
+    try:
+        redis_info = r.info("stats")
+        total_evictions = redis_info.get("evicted_keys", 0)
+    except Exception as e:
+        log.error(f"Error consultando Redis: {e}")
+        total_evictions = 0
+    
+    eviction_rate = round(total_evictions / (elapsed_s / 60), 4) if elapsed_s > 0 else 0.0
+    # -----------------------------------------------
 
     # ─────────────────────────────────────────
     # Cálculo de Cache Efficiency (Rúbrica)
@@ -117,6 +131,7 @@ def get_summary():
         "latency_p50_ms": round(p50, 3),
         "latency_p95_ms": round(p95, 3),
         "eviction_rate_per_min": eviction_rate,
+        "total_evictions_real": total_evictions, # Dato extra para verificar
         "cache_efficiency": round(cache_efficiency, 4),
         "elapsed_seconds": round(elapsed_s, 1)
     }
@@ -144,6 +159,13 @@ def reset_metrics():
     stats["latencies"] = []
     stats["evictions"] = 0
     stats["start_time"] = time.time()
+    
+    # Intentar resetear estadísticas de Redis también
+    try:
+        r.config_resetstat()
+    except:
+        pass
+
     log.info("Métricas reseteadas.")
     return {"status": "reset"}
 
