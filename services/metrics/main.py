@@ -84,7 +84,7 @@ def record_event(evt: MetricEvent):
     return {"recorded": True}
 
 # ─────────────────────────────────────────
-# Resumen de métricas (para el informe)
+# Resumen de las metricas 
 # ─────────────────────────────────────────
 @app.get("/summary")
 def get_summary():

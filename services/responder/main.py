@@ -1,7 +1,4 @@
 """
-Generador de Respuestas — Servicio Q1-Q5
-Carga el dataset en memoria al iniciar y expone endpoints REST
-para cada tipo de consulta geoespacial definida en la tarea.
 """
 
 import os
