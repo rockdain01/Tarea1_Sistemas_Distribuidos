@@ -23,7 +23,7 @@ services:
     command: >
       redis-server
       --maxmemory 1mb
-      --maxmemory-policy volatile-ttl
+      --maxmemory-policy allkeys-lfu 
       --save ""
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -105,7 +105,7 @@ services:
     environment:
       - CACHE_URL=http://cache:8002
       - METRICS_URL=http://metrics:8003
-      - DISTRIBUTION=zipf      # opciones: zipf | uniform
+      - DISTRIBUTION=zipf     # opciones: zipf | uniform
       - TOTAL_REQUESTS=10000
       - REQUEST_RATE=100       # requests por segundo
     networks:

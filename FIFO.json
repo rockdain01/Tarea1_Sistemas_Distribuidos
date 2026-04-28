@@ -1,0 +1,4 @@
+{"hits":1268,"misses":8731,"total_requests":9999,"hit_rate":0.1268,"miss_rate":0.8732,"throughput_rps":11.8,"latency_p50_ms":6.49,"latency_p95_ms":10.278,"eviction_rate_per_min":616.388,"total_evictions_real":8707,"cache_efficiency":-5.855,"elapsed_seconds":847.6}
+
+
+//usage: 10000 requests, 100 requests per second, zipf distribution, 1MB cache size, TTL 3600s todos fue con estos
