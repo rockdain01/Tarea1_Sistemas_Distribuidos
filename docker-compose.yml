@@ -9,13 +9,13 @@ volumes:
 
 services:
 
-  # ─────────────────────────────────────────
-  # Redis — Motor de caché
-  # ─────────────────────────────────────────
+  
+  # Redis — Motor de cache
+  
   redis:
     image: redis:7.2-alpine
     container_name: redis
-    platform: linux/arm64        # Mac M2 (Apple Silicon)
+    platform: linux/arm64        
     ports:
       - "6379:6379"
     networks:
@@ -31,9 +31,9 @@ services:
       timeout: 3s
       retries: 5
 
-  # ─────────────────────────────────────────
-  # Generador de Respuestas (Q1-Q5)
-  # ─────────────────────────────────────────
+  
+  # generador de Respuestas (Q1-Q5)
+  
   responder:
     build:
       context: ./services/responder
@@ -52,9 +52,9 @@ services:
       redis:
         condition: service_healthy
 
-  # ─────────────────────────────────────────
-  # Sistema Caché
-  # ─────────────────────────────────────────
+
+  # sistema Cache
+
   cache:
     build:
       context: ./services/cache
@@ -75,9 +75,9 @@ services:
       redis:
         condition: service_healthy
 
-  # ─────────────────────────────────────────
-  # Almacenamiento de Métricas
-  # ─────────────────────────────────────────
+  
+  # almacenamiento de metricas
+  
   metrics:
     build:
       context: ./services/metrics
@@ -93,9 +93,9 @@ services:
     networks:
       - tarea1_net
 
-  # ─────────────────────────────────────────
-  # Generador de Tráfico
-  # ─────────────────────────────────────────
+  
+  # generador de trafico
+  
   traffic:
     build:
       context: ./services/traffic

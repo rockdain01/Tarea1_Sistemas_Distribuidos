@@ -5,9 +5,9 @@ import logging
 import httpx
 import numpy as np
 
-# ─────────────────────────────────────────
-# Configuración desde Variables de Entorno
-# ─────────────────────────────────────────
+
+# configuracion desde las variables de Entorno
+
 CACHE_URL = os.getenv("CACHE_URL", "http://cache:8002")
 DISTRIBUTION = os.getenv("DISTRIBUTION", "zipf").lower()
 TOTAL_REQUESTS = int(os.getenv("TOTAL_REQUESTS", 1000))
@@ -29,17 +29,17 @@ def run_simulation():
     delay = 1.0 / REQUEST_RATE
     log.info(f"Iniciando simulación: {TOTAL_REQUESTS} requests ({DISTRIBUTION}) a {REQUEST_RATE} req/s")
     
-    # Esperar a que el sistema esté listo
+    # Esperar a que el sistema este listo
     time.sleep(5)
 
     for i in range(TOTAL_REQUESTS):
-        # 1. Selección de Zona según distribución
+        #  Seleccion de Zona segun distribución
         if DISTRIBUTION == "uniform":
             zone = random.choice(ZONES)
         else:
             zone = ZONES[generate_zipf_index(len(ZONES))]
 
-        # 2. Selección de Query y Payload
+        # 2 Seleccion de Query 
         q_type = random.choice(QUERIES)
         payload = {
             "query_type": q_type,
@@ -49,7 +49,7 @@ def run_simulation():
         if q_type == "Q5":
             payload["bins"] = random.randint(5, 15)
 
-        # 3. Envío al Cache
+        # 3 Envio al Cache
         try:
             with httpx.Client() as client:
                 resp = client.post(f"{CACHE_URL}/query", json=payload, timeout=5.0)

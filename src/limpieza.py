@@ -1,12 +1,12 @@
 import pandas as pd
 import os
 
-# Configuración de rutas según tu ubicación actual
+# configuración de rutas en mi pcxd
 INPUT_PATH = "/Users/benjamin/Universidad/Sistemas_Distribuidos/Tarea1/data/Raw/open_buildings_v3_points_ne_110m_CHL.csv.gz"
 OUTPUT_DIR = "/Users/benjamin/Universidad/Sistemas_Distribuidos/Tarea1/data/processed"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# Coordenadas exactas de la Tarea 1 (Pág. 4)
+# coordenadas que pedia a tarae
 ZONES = {
     "Z1": {"name": "Providencia",     "lat_min": -33.445, "lat_max": -33.420, "lon_min": -70.640, "lon_max": -70.600},
     "Z2": {"name": "Las Condes",      "lat_min": -33.420, "lat_max": -33.390, "lon_min": -70.600, "lon_max": -70.550},
@@ -18,17 +18,17 @@ ZONES = {
 def filtrar():
     print(f"Leyendo dataset comprimido: {INPUT_PATH}")
     try:
-        # Leemos el archivo .gz directamente
-        # Usamos las columnas requeridas: latitude, longitude, area_in_meters, confidence 
+        
+        # usamos las columnas que nos piden: latitude, longitude, area_in_meters, confidence 
         df = pd.read_csv(INPUT_PATH, compression='gzip', engine='c')
         
-        # Limpiar posibles espacios en los nombres de las columnas
+        # limpiar posibles espacios en los nombres de las columnas
         df.columns = [c.strip() for c in df.columns]
         
         print(f"Total de registros cargados de Chile: {len(df):,}")
 
         for zid, info in ZONES.items():
-            # Filtramos por las coordenadas de la zona [cite: 95]
+            
             mask = (
                 (df["latitude"] >= info["lat_min"]) & (df["latitude"] <= info["lat_max"]) &
                 (df["longitude"] >= info["lon_min"]) & (df["longitude"] <= info["lon_max"])
@@ -36,7 +36,7 @@ def filtrar():
             df_zona = df[mask].copy()
             df_zona["zone_id"] = zid
             
-            # Guardamos cada zona en un CSV individual en 'data/processed'
+            # se guarda cada zona en un csv individual en 'data/processed'
             file_name = f"{info['name'].replace(' ', '_')}.csv"
             output_path = os.path.join(OUTPUT_DIR, file_name)
             df_zona.to_csv(output_path, index=False)

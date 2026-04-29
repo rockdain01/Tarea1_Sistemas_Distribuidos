@@ -1,53 +1,44 @@
-# Tarea 1: Sistema Geoespacial Distribuido con Caché 🏢📡
+# Tarea 1: Sistema de Caché Distribuido - Análisis de Tráfico Santiago
 
-Este proyecto implementa una arquitectura distribuida para consultar datos de edificaciones en 5 comunas de Santiago. Utiliza una estrategia de caché con **Redis** para optimizar los tiempos de respuesta y un sistema de **Métricas** para monitorear el rendimiento.
+Este proyecto implementa un sistema de microservicios utilizando **Docker** y **Redis** para simular y analizar el rendimiento de un sistema de caché distribuido. El sistema procesa datos de tráfico de diversas zonas de Santiago y evalúa métricas críticas como Hit Rate, Latencia y Eficiencia de Caché entre otros.
 
-## 🚀 Requisitos Previos
-* Docker y Docker Compose instalados (En caso de instalar docker desktop, compose ya viene incluido).
-* En Mac M2: Docker Desktop (asegurar que el motor esté corriendo).
+## Estructura del Proyecto
 
-## 🛠️ Arquitectura
-* **Responder (Puerto 8001):** Motor de cálculo en Python (FastAPI) que procesa los datos en memoria.
-* **Cache (Puerto 8002):** Intermediario que gestiona Redis y redirige consultas al Responder si no hay un HIT.
-* **Metrics (Puerto 8003):** Almacena y calcula el rendimiento (Hit Rate, Latencia P95).
-* **Redis:** Base de datos NoSQL para el almacenamiento temporal (TTL: 60s).
+El sistema se divide en 5 microservicios independientes:
 
-## 🛠️ Configuracion en docker-compose.yml para LRU,LFU,FIFO:
-Para LRU (la que esta puesta ahora):
---maxmemory-policy allkeys-lru
-(Borra lo que no se ha usado hace tiempo).
+* **Traffic**: Generador de carga que simula peticiones de usuarios.
+* **Cache**: Intermediario que gestiona la lógica de almacenamiento en Redis.
+* **Responder**: Simulación de base de datos.
+* **Metrics**: Servicio estadístico que calcula el rendimiento y consulta evicciones reales en Redis.
+* **Redis**: Motor de almacenamiento en memoria.
 
-Para LFU:
---maxmemory-policy allkeys-lfu
-(Borra lo que se usa con menos frecuencia).
+## Requisitos Previos
 
-Para FIFO (en Redis se llama volatile-ttl):
---maxmemory-policy volatile-ttl
+* **Docker** y **Docker Compose** instalados.
+* Conexión a internet para la descarga de imágenes base (Python 3.11-slim).
 
-## ⚡ Instalación y Ejecución
+## Instrucciones del Despliegue
 
-1.  **Levantar los servicios:**
-    Desde la raíz de la carpeta `Tarea1`, ejecuta:
+para ejecutar el sistema desde siga estas instrucciones cero:
+
+1.  **Limpiar el entorno (es opcional pero recomendado):**
+    Si desea asegurar que Redis comience sin datos previos y sin volúmenes antiguos:
     ```bash
-    docker compose up --build responder cache metrics
+    docker compose down -v
     ```
 
-2.  **Verificar que los datos cargaron:**
-    Revisa los logs del contenedor `responder`. Deberías ver:
-    `Dataset listo. Total: 163,407 edificaciones en memoria.`
+2.  **Construir y levantar el sistema:**
+    Este comando descarga las dependencias, construye las imágenes y levanta los servicios:
+    ```bash
+    docker compose up --build
+    ```
 
-## 🔍 Pruebas de Consultas (Ejemplos)
+3.  **Verificar la ejecución:**
+    Una vez que el servicio `traffic` termine su simulación, verá el mensaje: `Simulación completada con éxito`.
 
-Puedes realizar pruebas utilizando `curl` desde otra terminal:
+## Consulta de Métricas
 
-# Primera consulta → debe ser MISS segunda consulta dentro de los 60 segundos de TTL debe ser HIT
+Para obtener los resultados finales de la simulación, ejecute el siguiente comando en una nueva terminal:
+
 ```bash
-curl -X POST http://localhost:8002/query \
-  -H "Content-Type: application/json" \
-  -d '{"query_type": "Q1", "zone_id": "Z1", "confidence_min": 0.0}'
-
-### Q1: Conteo de edificios (Providencia)
-```bash
-curl -X POST http://localhost:8002/query \
-  -H "Content-Type: application/json" \
-  -d '{"query_type": "Q1", "zone_id": "Z1", "confidence_min": 0.5}'
+curl http://localhost:8003/summary

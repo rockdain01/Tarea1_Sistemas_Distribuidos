@@ -1,7 +1,6 @@
 """
-Sistema Caché — Servicio intermediario
-Intercepta consultas, gestiona hits/misses con Redis,
-delega al Responder en caso de miss y registra métricas.
+Sistema Caché — Servicio intermediario que intercepta las consultas
+pare gestionar los hit/miss con el redis
 """
 
 import os
@@ -15,9 +14,9 @@ import redis.asyncio as aioredis
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
 
-# ─────────────────────────────────────────
-# Configuración
-# ─────────────────────────────────────────
+
+# Configuracion
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [CACHE] %(levelname)s — %(message)s"
@@ -31,9 +30,9 @@ METRICS_URL    = os.getenv("METRICS_URL", "http://metrics:8003")
 CACHE_TTL      = int(os.getenv("CACHE_TTL", 60))
 PORT           = int(os.getenv("PORT", 8002))
 
-# ─────────────────────────────────────────
-# App FastAPI
-# ─────────────────────────────────────────
+
+
+
 app = FastAPI(title="Cache Service", version="1.0.0")
 redis_client: aioredis.Redis = None
 
@@ -52,9 +51,9 @@ async def startup():
 async def shutdown():
     await redis_client.aclose()
 
-# ─────────────────────────────────────────
-# Modelos de request (idénticos al Responder)
-# ─────────────────────────────────────────
+
+# Modelos de request 
+
 class QueryRequest(BaseModel):
     query_type: str        # Q1, Q2, Q3, Q4, Q5
     zone_id: str = None
@@ -63,10 +62,10 @@ class QueryRequest(BaseModel):
     confidence_min: float = 0.0
     bins: int = 5
 
-# ─────────────────────────────────────────
+
 # Generación de cache key
-# Formato definido en la tarea sección 5
-# ─────────────────────────────────────────
+
+
 def build_cache_key(req: QueryRequest) -> str:
     qt = req.query_type.upper()
     if qt == "Q1":
@@ -82,9 +81,9 @@ def build_cache_key(req: QueryRequest) -> str:
     else:
         raise HTTPException(status_code=400, detail=f"Tipo de consulta inválido: {qt}")
 
-# ─────────────────────────────────────────
-# Construcción del payload para el Responder
-# ─────────────────────────────────────────
+
+# Construccion del payload para el Responder
+
 def build_responder_payload(req: QueryRequest) -> tuple[str, dict]:
     qt = req.query_type.upper()
     if qt == "Q1":
@@ -100,18 +99,18 @@ def build_responder_payload(req: QueryRequest) -> tuple[str, dict]:
     else:
         raise HTTPException(status_code=400, detail=f"Tipo de consulta inválido: {qt}")
 
-# ─────────────────────────────────────────
-# Envío de métricas (fire-and-forget)
-# ─────────────────────────────────────────
+
+# envío de metricas 
+
 async def send_metric(client: httpx.AsyncClient, payload: dict):
     try:
         await client.post(f"{METRICS_URL}/record", json=payload, timeout=2.0)
     except Exception:
-        pass  # Las métricas no deben bloquear el flujo principal
+        pass  
 
-# ─────────────────────────────────────────
-# Endpoint principal: procesar consulta
-# ─────────────────────────────────────────
+
+# endpoint principal: procesar consulta
+
 @app.post("/query")
 async def process_query(req: QueryRequest):
     cache_key = build_cache_key(req)
@@ -119,7 +118,7 @@ async def process_query(req: QueryRequest):
 
     async with httpx.AsyncClient() as client:
 
-        # ── Intentar cache hit ──────────────────
+        #Intentar cache hit
         cached = await redis_client.get(cache_key)
 
         if cached:
@@ -143,7 +142,7 @@ async def process_query(req: QueryRequest):
                 "data": json.loads(cached)
             }
 
-        # ── Cache miss: delegar al Responder ────
+        # cache miss: delegar al Responder 
         log.info(f"MISS {cache_key} — consultando Responder...")
         endpoint, payload = build_responder_payload(req)
 
@@ -161,7 +160,7 @@ async def process_query(req: QueryRequest):
 
         result = resp.json()
 
-        # ── Almacenar en Redis con TTL ──────────
+        #  almacenar en Redis con TTL 
         await redis_client.setex(cache_key, CACHE_TTL, json.dumps(result))
 
         t_total = round((time.perf_counter() - t_start) * 1000, 3)
@@ -185,18 +184,16 @@ async def process_query(req: QueryRequest):
             "data": result
         }
 
-# ─────────────────────────────────────────
-# Endpoint para limpiar caché (útil para experimentos)
-# ─────────────────────────────────────────
+
 @app.delete("/cache/flush")
 async def flush_cache():
     await redis_client.flushdb()
     log.info("Caché limpiada completamente.")
     return {"status": "flushed"}
 
-# ─────────────────────────────────────────
-# Estadísticas de Redis
-# ─────────────────────────────────────────
+
+# estadisticas de Redis
+
 @app.get("/cache/stats")
 async def cache_stats():
     info = await redis_client.info()
@@ -210,9 +207,9 @@ async def cache_stats():
         "ttl_configured": CACHE_TTL
     }
 
-# ─────────────────────────────────────────
-# Health check
-# ─────────────────────────────────────────
+
+
+
 @app.get("/health")
 async def health():
     try:

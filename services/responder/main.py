@@ -1,5 +1,4 @@
-"""
-"""
+
 
 import os
 import time
@@ -12,18 +11,17 @@ import numpy as np
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-# ─────────────────────────────────────────
-# Configuración de logging
-# ─────────────────────────────────────────
+
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [RESPONDER] %(levelname)s — %(message)s"
 )
 log = logging.getLogger(__name__)
 
-# ─────────────────────────────────────────
-# Zonas definidas en la tarea (sección 4.2)
-# ─────────────────────────────────────────
+
+# zonas definidas en la tarea
+
 ZONES = {
     "Z1": {"name": "Providencia",     "lat_min": -33.445, "lat_max": -33.420, "lon_min": -70.640, "lon_max": -70.600},
     "Z2": {"name": "Las_Condes",      "lat_min": -33.420, "lat_max": -33.390, "lon_min": -70.600, "lon_max": -70.550},
@@ -32,10 +30,7 @@ ZONES = {
     "Z5": {"name": "Pudahuel",        "lat_min": -33.470, "lat_max": -33.430, "lon_min": -70.810, "lon_max": -70.760},
 }
 
-# ─────────────────────────────────────────
-# Área de cada zona en km² (precalculada)
-# Fórmula: Δlat * Δlon * 111.32 * 111.32 * cos(lat_media)
-# ─────────────────────────────────────────
+
 def calc_area_km2(zone: dict) -> float:
     lat_mid = math.radians((zone["lat_min"] + zone["lat_max"]) / 2)
     delta_lat = abs(zone["lat_max"] - zone["lat_min"])
@@ -44,9 +39,9 @@ def calc_area_km2(zone: dict) -> float:
 
 ZONE_AREA_KM2 = {zid: calc_area_km2(z) for zid, z in ZONES.items()}
 
-# ─────────────────────────────────────────
-# Carga del dataset en memoria
-# ─────────────────────────────────────────
+
+# carga del dataset en memoria
+
 DATA_DIR = "/app/data"
 
 # data_store[zone_id] = lista de dicts {latitude, longitude, area_in_meters, confidence}
@@ -74,18 +69,18 @@ def load_dataset():
 
     log.info(f"Dataset listo. Total: {total:,} edificaciones en memoria.")
 
-# ─────────────────────────────────────────
+
 # App FastAPI
-# ─────────────────────────────────────────
+
 app = FastAPI(title="Responder Service", version="1.0.0")
 
 @app.on_event("startup")
 def startup_event():
     load_dataset()
 
-# ─────────────────────────────────────────
+
 # Modelos de request
-# ─────────────────────────────────────────
+
 class Q1Request(BaseModel):
     zone_id: str
     confidence_min: float = 0.0
@@ -107,17 +102,17 @@ class Q5Request(BaseModel):
     zone_id: str
     bins: int = 5
 
-# ─────────────────────────────────────────
-# Helper: validar zona
-# ─────────────────────────────────────────
+
+# validar zonaa
+
 def get_zone_records(zone_id: str) -> list:
     if zone_id not in data_store:
         raise HTTPException(status_code=404, detail=f"Zona '{zone_id}' no encontrada.")
     return data_store[zone_id]
 
-# ─────────────────────────────────────────
+
 # Q1 — Conteo de edificios en una zona
-# ─────────────────────────────────────────
+
 @app.post("/q1")
 def q1_count(req: Q1Request):
     """Cuenta el número total de edificaciones con confidence >= confidence_min."""
@@ -135,9 +130,9 @@ def q1_count(req: Q1Request):
         "processing_time_ms": elapsed
     }
 
-# ─────────────────────────────────────────
-# Q2 — Área promedio y área total
-# ─────────────────────────────────────────
+
+# Q2 — Area promedio y area total
+
 @app.post("/q2")
 def q2_area(req: Q2Request):
     """Calcula área promedio y total de edificaciones filtradas por confidence."""
@@ -163,9 +158,9 @@ def q2_area(req: Q2Request):
         "processing_time_ms": elapsed
     }
 
-# ─────────────────────────────────────────
-# Q3 — Densidad de edificaciones por km²
-# ─────────────────────────────────────────
+
+# Q3 — densidad de edificaciones por km cuadrado
+
 @app.post("/q3")
 def q3_density(req: Q3Request):
     """Calcula densidad de edificaciones por km² en la zona."""
@@ -187,16 +182,16 @@ def q3_density(req: Q3Request):
         "processing_time_ms": elapsed
     }
 
-# ─────────────────────────────────────────
-# Q4 — Comparación de densidad entre dos zonas
-# ─────────────────────────────────────────
+
+# Q4 — comparacion de densidad entre dos zonas
+
 @app.post("/q4")
 def q4_compare(req: Q4Request):
     """Compara densidad de edificaciones entre dos zonas."""
     t0 = time.perf_counter()
 
     for zid in [req.zone_a, req.zone_b]:
-        get_zone_records(zid)  # valida existencia
+        get_zone_records(zid)  # valida que existan primero
 
     def density(zone_id):
         records = data_store[zone_id]
@@ -220,9 +215,9 @@ def q4_compare(req: Q4Request):
         "processing_time_ms": elapsed
     }
 
-# ─────────────────────────────────────────
-# Q5 — Distribución de confianza en una zona
-# ─────────────────────────────────────────
+
+# Q5 — distribucion de confianza en una zona
+
 @app.post("/q5")
 def q5_confidence_dist(req: Q5Request):
     """Calcula la distribución del score de confianza agrupada en bins."""
@@ -254,9 +249,6 @@ def q5_confidence_dist(req: Q5Request):
         "processing_time_ms": elapsed
     }
 
-# ─────────────────────────────────────────
-# Health check
-# ─────────────────────────────────────────
 @app.get("/health")
 def health():
     return {
