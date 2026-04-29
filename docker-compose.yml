@@ -22,7 +22,7 @@ services:
       - tarea1_net
     command: >
       redis-server
-      --maxmemory 1mb
+      --maxmemory 50mb
       --maxmemory-policy allkeys-lfu 
       --save ""
     healthcheck:
