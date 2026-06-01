@@ -12,6 +12,7 @@ from datetime import datetime
 
 from fastapi import FastAPI
 from pydantic import BaseModel
+from typing import Optional
 
 logging.basicConfig(
     level=logging.INFO,
@@ -39,21 +40,37 @@ stats = {
     "miss_times_sum": 0.0,   
     "latencies": [],       
     "evictions": 0,
-    "start_time": time.time()
+    "start_time": time.time(),
+    #aca parte lo de la tarea 2 
+    "retries": 0,   
+    "dlq_count": 0,   
+    "recovered": 0,     
+    "end_to_end_ms":     [],    
+    "backlog_snapshots": [],
 }
 
 
 # Modelo de evento
 
 class MetricEvent(BaseModel):
-    event: str             
-    cache_key: str = ""
-    query_type: str = ""
-    zone_id: str = ""
+    event: str 
+    query_id: Optional[str] = "" #nuevo            
+    cache_key: Optional[str] = ""
+    query_type: Optional[str] = ""
+    zone_id: Optional[str] = ""
     latency_ms: float = 0.0
     responder_time_ms: float = 0.0
     ttl: int = 0
+    #tarea 2
+    retry_count: int = 0
+    recovered: bool = False
+    end_to_end_ms: float = 0.0
 
+#clase nueva
+class BacklogReport(BaseModel):
+    topic:   str
+    backlog: int           
+    timestamp: float = 0.0
 
 # registrar evento
 
@@ -74,8 +91,41 @@ def record_event(evt: MetricEvent):
     elif evt.event == "miss":
         stats["misses"] += 1
         stats["miss_times_sum"] += evt.latency_ms
+
+    elif evt.event == "retry":
+        #nuevo
+        stats["retries"] += 1
+
+    elif evt.event == "dlq":
+        #nuevo
+        stats["dlq_count"] += 1    
+
     elif evt.event == "eviction":
         stats["evictions"] += 1
+    #nuevos
+    if evt.recovered:
+        stats["recovered"] += 1
+
+    if evt.end_to_end_ms > 0:
+        stats["end_to_end_ms"].append(evt.end_to_end_ms)
+
+    return {"recorded": True}    
+
+@app.post("/backlog")
+def record_backlog(report: BacklogReport):
+    """
+    Recibe snapshots del backlog de Kafka.
+    El consumer puede llamar a este endpoint periódicamente.
+    """
+    snapshot = {
+        "topic":     report.topic,
+        "backlog":   report.backlog,
+        "timestamp": report.timestamp or time.time(),
+    }
+    stats["backlog_snapshots"].append(snapshot)
+    # aca solo los últimos 1000 snapshots se mantiene
+    if len(stats["backlog_snapshots"]) > 1000:
+        stats["backlog_snapshots"] = stats["backlog_snapshots"][-1000:]
 
     return {"recorded": True}
 
@@ -95,6 +145,11 @@ def get_summary():
     p50 = lats[int(len(lats) * 0.50)] if lats else 0.0
     p95 = lats[int(len(lats) * 0.95)] if lats else 0.0
 
+    # Latencia end-to-end (desde que traffic publica hasta que se resuelve)
+    e2e = sorted(stats["end_to_end_ms"])
+    e2e_p50 = e2e[int(len(e2e) * 0.50)] if e2e else 0.0
+    e2e_p95 = e2e[int(len(e2e) * 0.95)] if e2e else 0.0
+
     # CONSULTA DIRECTA A REDIS PARA EVICTIONS 
     try:
         redis_info = r.info("stats")
@@ -113,6 +168,20 @@ def get_summary():
         (stats["hits"] * t_cache) - (stats["misses"] * t_db)
     ) / total if total > 0 else 0.0
 
+    # metricas nuevas de l tarea 2
+    all_processed = total + stats["retries"] + stats["dlq_count"]
+    retry_rate    = round(stats["retries"]   / all_processed, 4) if all_processed > 0 else 0.0
+    dlq_rate      = round(stats["dlq_count"] / all_processed, 4) if all_processed > 0 else 0.0
+    recovery_rate = round(stats["recovered"] / stats["retries"], 4) if stats["retries"] > 0 else 0.0
+
+    #último snapshot 
+    backlog_by_topic: dict = {}
+    for snap in reversed(stats["backlog_snapshots"]):
+        if snap["topic"] not in backlog_by_topic:
+            backlog_by_topic[snap["topic"]] = snap["backlog"]
+        if len(backlog_by_topic) == 3:   
+            break
+
     return {
         "hits": stats["hits"],
         "misses": stats["misses"],
@@ -125,7 +194,17 @@ def get_summary():
         "eviction_rate_per_min": eviction_rate,
         "total_evictions_real": total_evictions, 
         "cache_efficiency": round(cache_efficiency, 4),
-        "elapsed_seconds": round(elapsed_s, 1)
+        "elapsed_seconds": round(elapsed_s, 1),
+        #las nuevas metricas de la tarea 2
+        "retries":               stats["retries"],
+        "dlq_count":             stats["dlq_count"],
+        "recovered":             stats["recovered"],
+        "retry_rate":            retry_rate,
+        "dlq_rate":              dlq_rate,
+        "recovery_rate":         recovery_rate,
+        "end_to_end_p50_ms":     round(e2e_p50, 3),
+        "end_to_end_p95_ms":     round(e2e_p95, 3),
+        "backlog_by_topic":      backlog_by_topic,
     }
 
 
@@ -134,26 +213,26 @@ def get_events(limit: int = 1000):
     evts = list(events)
     return {"total": len(evts), "events": evts[-limit:]}
 
+@app.get("/backlog/history")
+def get_backlog_history(topic: str = "queries", limit: int = 100):
+    snaps = [s for s in stats["backlog_snapshots"] if s["topic"] == topic]
+    return {"topic": topic, "history": snaps[-limit:]}
+
 
 @app.post("/reset")
 def reset_metrics():
     events.clear()
-    stats["hits"] = 0
-    stats["misses"] = 0
-    stats["total_requests"] = 0
-    stats["total_latency_ms"] = 0.0
-    stats["hit_times_sum"] = 0.0
-    stats["miss_times_sum"] = 0.0
-    stats["latencies"] = []
-    stats["evictions"] = 0
-    stats["start_time"] = time.time()
-    
-    
+    stats.update({
+        "hits": 0, "misses": 0, "total_requests": 0,
+        "hit_times_sum": 0.0, "miss_times_sum": 0.0,
+        "latencies": [], "evictions": 0, "start_time": time.time(),
+        "retries": 0, "dlq_count": 0, "recovered": 0,
+        "end_to_end_ms": [], "backlog_snapshots": [],
+    })
     try:
         r.config_resetstat()
-    except:
+    except Exception:
         pass
-
     log.info("Métricas reseteadas.")
     return {"status": "reset"}
 
