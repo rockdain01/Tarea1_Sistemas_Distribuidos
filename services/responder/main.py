@@ -4,6 +4,7 @@ import os
 import time
 import math
 import logging
+import random
 from collections import defaultdict
 
 import pandas as pd
@@ -18,6 +19,10 @@ logging.basicConfig(
     format="%(asctime)s [RESPONDER] %(levelname)s — %(message)s"
 )
 log = logging.getLogger(__name__)
+
+#nuevo tarea 2 tasa de fallas simuladas (0.0 = sin fallas 0.3 = 30% de falla)
+FAILURE_RATE     = float(os.getenv("FAILURE_RATE", "0.0"))
+FAILURE_DELAY_MS = float(os.getenv("FAILURE_DELAY_MS", "0"))  # latencia artificial
 
 
 # zonas definidas en la tarea
@@ -78,6 +83,20 @@ app = FastAPI(title="Responder Service", version="1.0.0")
 def startup_event():
     load_dataset()
 
+#falla simulada midleware
+def maybe_fail():
+    """Lanza 503 con probabilidad FAILURE_RATE. Simula sobrecarga del responder."""
+    if FAILURE_RATE > 0 and random.random() < FAILURE_RATE:
+        raise HTTPException(status_code=503, detail="Falla simulada (FAILURE_RATE)")
+    if FAILURE_DELAY_MS > 0:
+        time.sleep(FAILURE_DELAY_MS / 1000.0)
+
+def get_zone_records(zone_id: str) -> list:
+    if zone_id not in data_store:
+        raise HTTPException(status_code=404, detail=f"Zona '{zone_id}' no encontrada.")
+    return data_store[zone_id]
+
+
 
 # Modelos de request
 
@@ -116,6 +135,7 @@ def get_zone_records(zone_id: str) -> list:
 @app.post("/q1")
 def q1_count(req: Q1Request):
     """Cuenta el número total de edificaciones con confidence >= confidence_min."""
+    maybe_fail() # simula falla o latencia tambien nuevo tarea2
     t0 = time.perf_counter()
     records = get_zone_records(req.zone_id)
     count = sum(1 for r in records if r["confidence"] >= req.confidence_min)
@@ -136,6 +156,7 @@ def q1_count(req: Q1Request):
 @app.post("/q2")
 def q2_area(req: Q2Request):
     """Calcula área promedio y total de edificaciones filtradas por confidence."""
+    maybe_fail()
     t0 = time.perf_counter()
     records = get_zone_records(req.zone_id)
     areas = [r["area_in_meters"] for r in records if r["confidence"] >= req.confidence_min]
@@ -164,6 +185,7 @@ def q2_area(req: Q2Request):
 @app.post("/q3")
 def q3_density(req: Q3Request):
     """Calcula densidad de edificaciones por km² en la zona."""
+    maybe_fail()
     t0 = time.perf_counter()
     records = get_zone_records(req.zone_id)
     count = sum(1 for r in records if r["confidence"] >= req.confidence_min)
@@ -188,6 +210,7 @@ def q3_density(req: Q3Request):
 @app.post("/q4")
 def q4_compare(req: Q4Request):
     """Compara densidad de edificaciones entre dos zonas."""
+    maybe_fail()
     t0 = time.perf_counter()
 
     for zid in [req.zone_a, req.zone_b]:
@@ -221,6 +244,7 @@ def q4_compare(req: Q4Request):
 @app.post("/q5")
 def q5_confidence_dist(req: Q5Request):
     """Calcula la distribución del score de confianza agrupada en bins."""
+    maybe_fail()
     t0 = time.perf_counter()
     records = get_zone_records(req.zone_id)
     scores = [r["confidence"] for r in records]
