@@ -1,1 +1,0 @@
-{"hits":1317,"misses":8683,"total_requests":10000,"hit_rate":0.1317,"miss_rate":0.8683,"throughput_rps":34.52,"latency_p50_ms":6.55,"latency_p95_ms":10.906,"eviction_rate_per_min":1798.2199,"total_evictions_real":8683,"cache_efficiency":-5.9318,"elapsed_seconds":289.7}
