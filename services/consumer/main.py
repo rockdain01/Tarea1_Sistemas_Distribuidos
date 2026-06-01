@@ -9,7 +9,7 @@ from kafka import KafkaConsumer, KafkaProducer
 from kafka.errors import KafkaError
 
 logging.basicConfig(level=logging.INFO,
-                   format="%(asctime)s [CONSUMER] %(levelname)s - %(message)s"
+                    format="%(asctime)s [CONSUMER] %(levelname)s - %(message)s"
 )
 log = logging.getLogger(__name__)
 
@@ -90,15 +90,15 @@ def process_message(msg: dict, producer: KafkaProducer) ->bool:
             f" fuente={source} latencia={latency_ms}ms retries={retry_count}"
         )
 
-        send_metric({
+        send_metrics({
             "event": "hit" if source == "cache" else "miss",
             "query_id": query_id,
             "query_type": msg["query_type"],
             "zone_id": msg.get("zone_id") or msg.get("zone_a"),
             "latency_ms": latency_ms,
-            "retry_count": retry_count
-            "recovered": retry_count > 0 #esto sera true en caso de que venga del retry
-            "end_to_end_latency_ms": round((time.time() - create_time) * 1000, 2)
+            "retry_count": retry_count,
+            "recovered": retry_count > 0,#esto sera true en caso de que venga del retry
+            "end_to_end_latency_ms": round((time.time() - create_time) * 1000, 2),
         })
         return True
     except Exception as e:
@@ -114,27 +114,27 @@ def process_message(msg: dict, producer: KafkaProducer) ->bool:
             producer.flush()
             log.error(f"DLQ  query_id={query_id} - agoto {MAX_RETRIES} reintentos. Enviado a DLQ.")
 
-            send_metric({
+            send_metrics({
                 "event": "dlq",
                 "query_id": query_id,
                 "query_type": msg.get("query_type",""),
                 "zone_id": msg.get("zone_id", ""),
                 "latency_ms": latency_ms,
                 "retry_count": retry_count,
-           })
+            })
         else:
             retry_msg = {**msg, "retry_count": retry_count + 1}
             producer.send(TOPIC_RETRY, retry_msg)
             producer.flush()
             log.info(f"Reintentando query_id={query_id} - Enviado a topic de retry.")
                 
-            send_metric({
+            send_metrics({
                 "event": "retry",
-                "query_id": query_id
+                "query_id": query_id,
                 "query_type": msg.get("query_type",""),
                 "zone_id": msg.get("zone_id", ""),
                 "latency_ms": latency_ms,
-                "retry_count": retry_count + 1
+                "retry_count": retry_count + 1,
             })
         return False
     
