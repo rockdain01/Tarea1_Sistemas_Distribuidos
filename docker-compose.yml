@@ -55,7 +55,7 @@ services:
       kafka:
         condition: service_healthy
     networks:
-      - tarea2_net
+      - tarea1_net
     entrypoint: >
       bash -c "
         echo 'Creando topics...' &&
@@ -153,7 +153,26 @@ services:
     networks:
       - tarea1_net
 
-  
+  consumer:
+    build:
+      context: ./services/consumer
+      dockerfile: Dockerfile
+    platform: linux/arm64
+    environment:
+      - KAFKA_BOOTSTRAP=kafka:9092
+      - CACHE_URL=http://cache:8002
+      - METRICS_URL=http://metrics:8003
+      - MAX_RETRIES=3
+      - CONSUMER_GROUP=consumer-group
+    networks:
+      - tarea1_net
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+      cache:
+        condition: service_started
+      metrics:
+        condition: service_started
   # generador de trafico
   
   traffic:
