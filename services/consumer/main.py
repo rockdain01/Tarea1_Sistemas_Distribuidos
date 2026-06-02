@@ -138,3 +138,14 @@ def process_message(msg: dict, producer: KafkaProducer) ->bool:
             })
         return False
     
+def main():
+    producer = make_producer()
+    consumer = make_consumer([TOPIC_QUERIES, TOPIC_RETRY])
+
+    log.info("Consumer iniciado. Esperando mensajes...")
+    for message in consumer:
+        msg = message.value
+        process_message(msg, producer)
+
+if __name__ == "__main__":
+    main()
