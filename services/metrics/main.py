@@ -31,6 +31,8 @@ stats = {
     "dlq_count": 0,
     "recovered": 0,
     "end_to_end_ms": [],
+    "recovery_start_ts": None,
+    "recovery_time_s": None,
 }
 
 class MetricEvent(BaseModel):
@@ -132,6 +134,7 @@ def get_summary():
         "recovery_rate":         recovery_rate,
         "end_to_end_p50_ms":     round(e2e_p50, 3),
         "end_to_end_p95_ms":     round(e2e_p95, 3),
+        "recovery_time_s":       stats["recovery_time_s"],
     }
 
 @app.get("/events")
@@ -150,6 +153,8 @@ def reset_metrics():
         "start_time": time.time(),
         "retries": 0, "dlq_count": 0, "recovered": 0,
         "end_to_end_ms": [],
+        "recovery_start_ts": None,
+        "recovery_time_s": None,
     })
     try:
         r.config_resetstat()
@@ -157,6 +162,20 @@ def reset_metrics():
         pass
     log.info("Métricas reseteadas.")
     return {"status": "reset"}
+
+@app.post("/recovery/start")
+def recovery_start():
+    stats["recovery_start_ts"] = time.time()
+    log.info("Recovery timer iniciado.")
+    return {"status": "started", "ts": stats["recovery_start_ts"]}
+
+@app.post("/recovery/end")
+def recovery_end():
+    if stats["recovery_start_ts"] is None:
+        return {"error": "recovery/start no fue llamado"}
+    stats["recovery_time_s"] = round(time.time() - stats["recovery_start_ts"], 1)
+    log.info(f"Recovery time registrado: {stats['recovery_time_s']}s")
+    return {"recovery_time_s": stats["recovery_time_s"]}
 
 @app.get("/health")
 def health():

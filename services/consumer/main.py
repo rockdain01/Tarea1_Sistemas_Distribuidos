@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO,
 )
 log = logging.getLogger(__name__)
 
-KAFKA_BOOTSRTAP = os.getenv("KAFKA_BOOTSTRAP", "localhost:9092")
+KAFKA_BOOTSTRAP = os.getenv("KAFKA_BOOTSTRAP", "kafka:9092")
 CACHE_URL = os.getenv("CACHE_URL", "http://cache:8002")
 METRICS_URL = os.getenv("METRICS_URL", "http://metrics:8003")
 MAX_RETRIES = int(os.getenv("MAX_RETRIES", 5))
@@ -27,7 +27,7 @@ def make_producer() -> KafkaProducer:
     while True:
         try:
             p = KafkaProducer(
-                bootstrap_servers=KAFKA_BOOTSRTAP,
+                bootstrap_servers=KAFKA_BOOTSTRAP,
                 value_serializer=lambda v: json.dumps(v).encode("utf-8"),
                 acks="all",
                 retries=5
@@ -43,9 +43,10 @@ def make_consumer(topics: list[str]) -> KafkaConsumer:
         try:
             c = KafkaConsumer(
                 *topics,
-                bootstrap_servers=KAFKA_BOOTSRTAP,
+                bootstrap_servers=KAFKA_BOOTSTRAP,
                 group_id=CONSUMER_GROUP,
                 value_deserializer=lambda v: json.loads(v.decode("utf-8")),
+                auto_offset_reset="earliest",
                 session_timeout_ms=30_000,
                 heartbeat_interval_ms=10_000,
                 
@@ -122,8 +123,7 @@ def process_message(msg: dict, producer: KafkaProducer) ->bool:
                 "latency_ms": latency_ms,
                 "retry_count": retry_count,
             })
-        else:
-            time.sleep(2) 
+        else: 
             retry_msg = {**msg, "retry_count": retry_count + 1}
             producer.send(TOPIC_RETRY, retry_msg)
             producer.flush()
