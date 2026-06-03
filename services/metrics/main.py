@@ -26,6 +26,7 @@ stats = {
     "miss_times_sum": 0.0,
     "latencies": [],
     "evictions": 0,
+    "lost": 0,  
     "start_time": time.time(),
     "retries": 0,
     "dlq_count": 0,
@@ -70,6 +71,8 @@ def record_event(evt: MetricEvent):
         stats["dlq_count"] += 1
     elif evt.event == "eviction":
         stats["evictions"] += 1
+    elif evt.event == "lost":
+        stats["lost"] += 1
 
     if evt.recovered:
         stats["recovered"] += 1
@@ -126,6 +129,7 @@ def get_summary():
         "total_evictions_real":  total_evictions,
         "cache_efficiency":      round(cache_efficiency, 4),
         "elapsed_seconds":       round(elapsed_s, 1),
+        "lost_count":            stats["lost"],  
         "retries":               stats["retries"],
         "dlq_count":             stats["dlq_count"],
         "recovered":             stats["recovered"],
@@ -152,6 +156,7 @@ def reset_metrics():
         "latencies": [], "evictions": 0,
         "start_time": time.time(),
         "retries": 0, "dlq_count": 0, "recovered": 0,
+        "lost": 0,   
         "end_to_end_ms": [],
         "recovery_start_ts": None,
         "recovery_time_s": None,
