@@ -47,7 +47,7 @@ def make_consumer(topics: list[str]) -> KafkaConsumer:
                 group_id=CONSUMER_GROUP,
                 value_deserializer=lambda v: json.loads(v.decode("utf-8")),
                 session_timeout_ms=30_000,
-                hertbeat_interval_ms=10_000,
+                heartbeat_interval_ms=10_000,
                 
             )
             log.info(f"Kafka Consumer conectado a: {topics}")
@@ -72,7 +72,7 @@ def process_message(msg: dict, producer: KafkaProducer) ->bool:
         "zone_id": msg.get("zone_id"),
         "zone_a": msg.get("zone_a"),
         "zone_b": msg.get("zone_b"),
-        "confidence": msg.get("confidence"),
+        "confidence": msg.get("confidence_min", 0.0),
         "bins": msg.get("bins", 5),
     }
 

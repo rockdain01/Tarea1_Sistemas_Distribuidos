@@ -6,8 +6,7 @@ import httpx
 import numpy as np
 import uuid
 import json
-import kafka 
-import KafkaProducer
+from kafka import KafkaProducer
 from kafka.errors import KafkaError
 # configuracion desde las variables de Entorno
 
@@ -42,7 +41,7 @@ def build_query_message(distribution: str) -> dict:
     zone = (
         random.choice(ZONES)
         if distribution == "uniform"
-        else ZONES[zipf_index(len(ZONES))]
+        else ZONES[generate_zipf_index(len(ZONES))]
     )
     q_type = random.choice(QUERIES)
 

@@ -59,12 +59,9 @@ services:
     entrypoint: >
       bash -c "
         echo 'Creando topics...' &&
-        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists
-          --topic queries --partitions 3 --replication-factor 1 &&
-        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists
-          --topic retry   --partitions 3 --replication-factor 1 &&
-        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists
-          --topic dlq     --partitions 1 --replication-factor 1 &&
+        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic queries --partitions 3 --replication-factor 1 &&
+        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic retry --partitions 3 --replication-factor 1 &&
+        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic dlq --partitions 1 --replication-factor 1 &&
         echo 'Topics creados OK'
       "
     restart: "no"

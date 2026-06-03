@@ -8,7 +8,7 @@ import time
 import json
 import logging
 import hashlib
-
+from typing import Optional
 import httpx
 import redis.asyncio as aioredis
 from fastapi import FastAPI, HTTPException, Request
@@ -56,9 +56,9 @@ async def shutdown():
 
 class QueryRequest(BaseModel):
     query_type: str        # Q1, Q2, Q3, Q4, Q5
-    zone_id: str = None
-    zone_a: str = None
-    zone_b: str = None
+    zone_id: Optional[str] = None
+    zone_a: Optional[str] = None
+    zone_b: Optional[str] = None
     confidence_min: float = 0.0
     bins: int = 5
 
