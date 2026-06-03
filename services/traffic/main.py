@@ -6,8 +6,7 @@ import httpx
 import numpy as np
 import uuid
 import json
-import kafka 
-import KafkaProducer
+from kafka import KafkaProducer
 from kafka.errors import KafkaError
 # configuracion desde las variables de Entorno
 
@@ -42,7 +41,7 @@ def build_query_message(distribution: str) -> dict:
     zone = (
         random.choice(ZONES)
         if distribution == "uniform"
-        else ZONES[zipf_index(len(ZONES))]
+        else ZONES[generate_zipf_index(len(ZONES))]
     )
     q_type = random.choice(QUERIES)
 
@@ -87,7 +86,7 @@ def run_simulation():
         )
 
     # Esperar a que Kafka esté disponible
-    time.sleep(15)
+    time.sleep(50)  # tiempo para que Kafka y otros servicios inicien
     producer = make_producer()
 
     delay = 1.0 / REQUEST_RATE

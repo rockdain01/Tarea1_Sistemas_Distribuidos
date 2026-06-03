@@ -13,9 +13,31 @@ get_summary() {
     curl -s "$METRICS_URL/summary" | python3 -m json.tool
 }
 
+get_backlog() {
+    echo "  → Backlog actual:"
+    for topic in queries retry dlq; do
+        count=$(docker exec kafka kafka-run-class kafka.tools.GetOffsetShell \
+            --broker-list localhost:9092 \
+            --topic $topic 2>/dev/null | \
+            awk -F: '{sum += $3} END {print sum+0}')
+        echo "    $topic: $count mensajes"
+    done
+}
+
 wait_traffic() {
     echo "  → Esperando a que traffic termine..."
-    $COMPOSE logs -f traffic 2>&1 | grep -q "completada" || true
+    while ! $COMPOSE logs traffic 2>&1 | grep -q "completada"; do
+        sleep 3
+    done
+    echo "  → Traffic terminó."
+}
+
+
+wait_consumer() {
+    echo "  → Esperando a que consumer termine de procesar..."
+    sleep 15  # Esperar un poco para que el consumer procese los últimos mensajes
+    get_backlog
+    echo "  → Listo."
 }
 
 SCENARIO=${1:-"menu"}
@@ -33,10 +55,12 @@ case $SCENARIO in
     echo "=== ESCENARIO 2: Kafka + 1 Consumer ==="
     $COMPOSE down -v 2>/dev/null || true
     $COMPOSE up --build --scale consumer=1 -d
-    sleep 20
+    sleep 50
     reset_metrics
     $COMPOSE up traffic
     wait_traffic
+    wait_consumer #=$(docker ps --filter "name=consumer" --filter "status=running" -q | wc -l)
+                    #echo "  → Consumers activos al finalizar: $wait_consumers"
     get_summary
     ;;
 
@@ -49,6 +73,7 @@ case $SCENARIO in
     reset_metrics
     $COMPOSE up traffic
     wait_traffic
+    wait_consumer
     get_summary
     ;;
 
@@ -77,6 +102,8 @@ case $SCENARIO in
     docker start responder
 
     wait_traffic
+    sleep 40
+    wait_consumer
     get_summary
     ;;
 
@@ -95,6 +122,8 @@ case $SCENARIO in
     SPIKE_DURATION=10 \
     $COMPOSE up traffic
 
+    wait_traffic
+    wait_consumer
     get_summary
     ;;
 
@@ -135,7 +164,12 @@ case $SCENARIO in
         "import sys,json; d=json.load(sys.stdin); \
         print(f\"recovered={d['recovered']} retries={d['retries']} dlq={d['dlq_count']}\")"
     done
+    
+    sleep 40
 
+
+    wait_traffic
+    wait_consumer
     get_summary
     ;;
 

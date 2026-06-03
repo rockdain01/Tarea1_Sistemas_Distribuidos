@@ -16,7 +16,7 @@ log = logging.getLogger(__name__)
 KAFKA_BOOTSRTAP = os.getenv("KAFKA_BOOTSTRAP", "localhost:9092")
 CACHE_URL = os.getenv("CACHE_URL", "http://cache:8002")
 METRICS_URL = os.getenv("METRICS_URL", "http://metrics:8003")
-MAX_RETRIES = int(os.getenv("MAX_RETRIES", 3))
+MAX_RETRIES = int(os.getenv("MAX_RETRIES", 5))
 CONSUMER_GROUP = os.getenv("CONSUMER_GROUP", "consumer-group")
 
 TOPIC_QUERIES = "queries"
@@ -47,7 +47,7 @@ def make_consumer(topics: list[str]) -> KafkaConsumer:
                 group_id=CONSUMER_GROUP,
                 value_deserializer=lambda v: json.loads(v.decode("utf-8")),
                 session_timeout_ms=30_000,
-                hertbeat_interval_ms=10_000,
+                heartbeat_interval_ms=10_000,
                 
             )
             log.info(f"Kafka Consumer conectado a: {topics}")
@@ -65,14 +65,14 @@ def send_metrics(payload: dict):
 def process_message(msg: dict, producer: KafkaProducer) ->bool:
     query_id = msg.get("query_id", str(uuid.uuid4()))
     retry_count = msg.get("retry_count", 0)
-    create_time = msg.get("create_time", time.time())
+    create_time = msg.get("created_at", time.time())
 
     cache_payload = {
         "query_type": msg.get("query_type"),
         "zone_id": msg.get("zone_id"),
         "zone_a": msg.get("zone_a"),
         "zone_b": msg.get("zone_b"),
-        "confidence": msg.get("confidence"),
+        "confidence_min": msg.get("confidence_min", 0.0),
         "bins": msg.get("bins", 5),
     }
 
@@ -123,6 +123,7 @@ def process_message(msg: dict, producer: KafkaProducer) ->bool:
                 "retry_count": retry_count,
             })
         else:
+            time.sleep(2) 
             retry_msg = {**msg, "retry_count": retry_count + 1}
             producer.send(TOPIC_RETRY, retry_msg)
             producer.flush()
