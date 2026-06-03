@@ -86,7 +86,7 @@ def run_simulation():
         )
 
     # Esperar a que Kafka esté disponible
-    time.sleep(15)
+    time.sleep(50)  # tiempo para que Kafka y otros servicios inicien
     producer = make_producer()
 
     delay = 1.0 / REQUEST_RATE

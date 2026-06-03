@@ -127,7 +127,7 @@ async def process_query(req: QueryRequest):
             log.info(f"HIT  {cache_key} ({t_total}ms)")
 
             await send_metric(client, {
-                "event": "hit",
+                #"event": "hit",
                 "cache_key": cache_key,
                 "query_type": req.query_type,
                 "zone_id": req.zone_id or req.zone_a,
@@ -167,7 +167,7 @@ async def process_query(req: QueryRequest):
         log.info(f"MISS {cache_key} → almacenado en caché. Total: {t_total}ms")
 
         await send_metric(client, {
-            "event": "miss",
+            #"event": "miss",
             "cache_key": cache_key,
             "query_type": req.query_type,
             "zone_id": req.zone_id or req.zone_a,
