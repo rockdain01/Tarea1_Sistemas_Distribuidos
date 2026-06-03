@@ -1,0 +1,4 @@
+{"hits":958,"misses":9042,"total_requests":10000,"hit_rate":0.0958,"miss_rate":0.9042,"throughput_rps":30.55,"latency_p50_ms":13.03,"latency_p95_ms":19.8,"eviction_rate_per_min":1657.5511,"total_evictions_real":9042,"cache_efficiency":-12.0562,"elapsed_seconds":327.3,"retries":0,"dlq_count":0,"recovered":0,"retry_rate":0.0,"dlq_rate":0.0,"recovery_rate":0.0,"end_to_end_p50_ms":86223.89,"end_to_end_p95_ms":165383.85}
+
+
+//prueba que hice con un consumer a 1mb de cache y 10000 requests y 100 por segundos, no se si sirva pero esta

@@ -14,14 +14,13 @@ get_summary() {
 }
 
 get_backlog() {
-    echo "  → Backlog actual:"
-    for topic in queries retry dlq; do
-        count=$(docker exec kafka kafka-run-class kafka.tools.GetOffsetShell \
-            --broker-list localhost:9092 \
-            --topic $topic 2>/dev/null | \
-            awk -F: '{sum += $3} END {print sum+0}')
-        echo "    $topic: $count mensajes"
-    done
+    echo "  → Backlog actual (consumer lag):"
+    docker exec kafka kafka-consumer-groups \
+        --bootstrap-server localhost:9092 \
+        --describe \
+        --group consumer-group 2>/dev/null | \
+        grep -E "queries|retry|dlq" | \
+        awk '{print "    topic=" $2 " partition=" $3 " lag=" $6}'
 }
 
 wait_traffic() {
@@ -34,10 +33,22 @@ wait_traffic() {
 
 
 wait_consumer() {
-    echo "  → Esperando a que consumer termine de procesar..."
-    sleep 15  # Esperar un poco para que el consumer procese los últimos mensajes
-    get_backlog
-    echo "  → Listo."
+    echo "  → Esperando a que consumer vacíe el backlog..."
+    while true; do
+        lag=$(docker exec kafka kafka-consumer-groups \
+            --bootstrap-server localhost:9092 \
+            --describe \
+            --group consumer-group 2>/dev/null | \
+            grep -E "queries|retry" | \
+            awk '{sum += $6} END {print sum+0}')
+        echo "    Lag pendiente: $lag mensajes"
+        if [ "$lag" -eq 0 ]; then
+            echo "  → Backlog vacío."
+            sleep 10
+            break
+        fi
+        sleep 5
+    done
 }
 
 SCENARIO=${1:-"menu"}
@@ -100,11 +111,14 @@ case $SCENARIO in
 
     echo "  Restaurando responder..."
     docker start responder
+    curl -s -X POST "$METRICS_URL/recovery/start" > /dev/null
+    echo "  → Timer de recovery iniciado."
 
     wait_traffic
-    sleep 40
     wait_consumer
+    curl -s -X POST "$METRICS_URL/recovery/end" > /dev/null
     get_summary
+
     ;;
 
 
@@ -153,24 +167,24 @@ case $SCENARIO in
     sleep 30
 
     echo "  → Restaurando responder — los mensajes en cola se procesarán solos"
-    docker start responder
+docker start responder
+curl -s -X POST "$METRICS_URL/recovery/start" > /dev/null
+echo "  → Timer de recovery iniciado."
 
-    # Monitorear backlog cada 5s
-    echo "  → Monitoreando recovery (backlog):"
-    for i in $(seq 1 10); do
-      sleep 5
-      echo -n "    t=${i}0s → "
-      curl -s "$METRICS_URL/summary" | python3 -c \
-        "import sys,json; d=json.load(sys.stdin); \
-        print(f\"recovered={d['recovered']} retries={d['retries']} dlq={d['dlq_count']}\")"
-    done
-    
-    sleep 40
+# Monitorear backlog cada 5s
+echo "  → Monitoreando recovery (backlog):"
+for i in $(seq 1 10); do
+  sleep 5
+  echo -n "    t=$((i*5))s → "
+  curl -s "$METRICS_URL/summary" | python3 -c \
+    "import sys,json; d=json.load(sys.stdin); \
+    print(f\"recovered={d['recovered']} retries={d['retries']} dlq={d['dlq_count']}\")"
+done
 
-
-    wait_traffic
-    wait_consumer
-    get_summary
+wait_traffic
+wait_consumer
+curl -s -X POST "$METRICS_URL/recovery/end" > /dev/null
+get_summary
     ;;
 
 

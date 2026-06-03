@@ -1,0 +1,10 @@
+{"hits":410,"misses":590,"total_requests":1000,"hit_rate":0.41,"miss_rate":0.59,"throughput_rps":4.01,"latency_p50_ms":18.84,"latency_p95_ms":28.33,"eviction_rate_per_min":0.0,"total_evictions_real":0,"cache_efficiency":-6.3238,"elapsed_seconds":249.5,"retries":0,"dlq_count":0,"recovered":0,"retry_rate":0.0,"dlq_rate":0.0,"recovery_rate":0.0,"end_to_end_p50_ms":21.17,"end_to_end_p95_ms":61.78}
+
+
+//para hacer esta prueba primero hice el % docker compose down -v, despues
+//docker compose up --scale consumer=1 -d, para las otras dos hay que solo cambiar el numero de consumers
+//despues en esa misma consola docker compose logs consumer --follow  para ver losmensajes
+//y cuando se detiene hago un curl http://localhost:8003/summary asi puedo ver las metricas
+// y lo exporto a json con curl -s http://localhost:8003/summary > resultados_consumer_1.json
+//ese es todo el flujo de trabajo  
+

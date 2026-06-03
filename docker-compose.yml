@@ -59,8 +59,8 @@ services:
     entrypoint: >
       bash -c "
         echo 'Creando topics...' &&
-        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic queries --partitions 3 --replication-factor 1 &&
-        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic retry --partitions 3 --replication-factor 1 &&
+        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic queries --partitions 6 --replication-factor 1 &&
+        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic retry --partitions 6 --replication-factor 1 &&
         kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic dlq --partitions 1 --replication-factor 1 &&
         echo 'Topics creados OK'
       "
@@ -101,6 +101,8 @@ services:
       - ./data/processed:/app/data
     environment:
       - PORT=8001
+      - FAILURE_RATE=${FAILURE_RATE:-0.0}
+      - FAILURE_DELAY_MS=${FAILURE_DELAY_MS:-0}
     ports:
       - "8001:8001"
     networks:
@@ -161,6 +163,7 @@ services:
       - METRICS_URL=http://metrics:8003
       - MAX_RETRIES=3
       - CONSUMER_GROUP=consumer-group
+      - NUM_CONSUMERS=${NUM_CONSUMERS:-1}
     networks:
       - tarea1_net
     depends_on:
@@ -181,9 +184,9 @@ services:
     environment:
       - CACHE_URL=http://cache:8002
       - METRICS_URL=http://metrics:8003
-      - DISTRIBUTION=uniform     # opciones: zipf | uniform
+      - DISTRIBUTION=zipf    # opciones: zipf | uniform
       - TOTAL_REQUESTS=1000
-      - REQUEST_RATE=10       # requests por segundo
+      - REQUEST_RATE=10    # requests por segundo
       - KAFKA_BOOTSTRAP=kafka:9092
     networks:
       - tarea1_net

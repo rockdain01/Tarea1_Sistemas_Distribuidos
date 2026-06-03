@@ -1,0 +1,5 @@
+{"hits":46,"misses":954,"total_requests":1000,"hit_rate":0.046,"miss_rate":0.954,"throughput_rps":4.1,"latency_p50_ms":19.87,"latency_p95_ms":29.14,"eviction_rate_per_min":234.8689,"total_evictions_real":954,"cache_efficiency":-19.622,"elapsed_seconds":243.7,"retries":0,"dlq_count":0,"recovered":0,"retry_rate":0.0,"dlq_rate":0.0,"recovery_rate":0.0,"end_to_end_p50_ms":22.09,"end_to_end_p95_ms":61.7}
+
+
+//este es un caso que quice probar, hice lo mismo que en lo explicado en 
+// resultados_consumer_1.json solo que le puse 1mb de cache, el hitt se va a la shet
