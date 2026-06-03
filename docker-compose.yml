@@ -124,7 +124,7 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - RESPONDER_URL=http://responder:8001
-      - CACHE_TTL=3600
+      - CACHE_TTL=30
       - PORT=8002
     ports:
       - "8002:8002"
@@ -188,6 +188,7 @@ services:
       - TOTAL_REQUESTS=1000
       - REQUEST_RATE=10    # requests por segundo
       - KAFKA_BOOTSTRAP=kafka:9092
+      - MODE=${MODE:-async}  # opciones: async | sync
     networks:
       - tarea1_net
     depends_on:
