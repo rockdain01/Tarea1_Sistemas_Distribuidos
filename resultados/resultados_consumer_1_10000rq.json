@@ -1,0 +1,9 @@
+{"hits":6662,"misses":3338,"total_requests":10000,"hit_rate":0.6662,"miss_rate":0.3338,"throughput_rps":34.84,"latency_p50_ms":10.17,"latency_p95_ms":17.92,"eviction_rate_per_min":0.0,"total_evictions_real":0,"cache_efficiency":1.7793,"elapsed_seconds":287.0,"lost_count":0,"retries":0,"dlq_count":0,"recovered":0,"retry_rate":0.0,"dlq_rate":0.0,"recovery_rate":0.0,"end_to_end_p50_ms":22659.11,"end_to_end_p95_ms":51858.03,"recovery_time_s":null}
+
+
+
+//creo que estos son mejores para hacer la comparacion, de cuando hay un solo consumer
+//a que cuando hay 3 y 5 consumer, la diferencia es que en este caso el total de requests
+//es de 10000, mientras que en los otros era de 1000, y cuando era 1000 el que mejor 
+//desempeño tenia era el de 1 consumer, me parece raro la vd no se porque, pero
+//en este caso el que tiene mejor desempeño es el de 5 consumers

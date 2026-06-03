@@ -185,8 +185,8 @@ services:
       - CACHE_URL=http://cache:8002
       - METRICS_URL=http://metrics:8003
       - DISTRIBUTION=zipf    # opciones: zipf | uniform
-      - TOTAL_REQUESTS=1000
-      - REQUEST_RATE=10    # requests por segundo
+      - TOTAL_REQUESTS=10000
+      - REQUEST_RATE=100    # requests por segundo
       - KAFKA_BOOTSTRAP=kafka:9092
       - MODE=${MODE:-async}  # opciones: async | sync
     networks:
