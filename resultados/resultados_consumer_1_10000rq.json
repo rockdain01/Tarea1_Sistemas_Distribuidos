@@ -6,4 +6,4 @@
 //a que cuando hay 3 y 5 consumer, la diferencia es que en este caso el total de requests
 //es de 10000, mientras que en los otros era de 1000, y cuando era 1000 el que mejor 
 //desempeño tenia era el de 1 consumer, me parece raro la vd no se porque, pero
-//en este caso el que tiene mejor desempeño es el de 5 consumers
+//en este caso el que tiene mejor desempeño es el de 3 consumers
